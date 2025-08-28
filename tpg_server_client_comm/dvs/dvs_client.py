@@ -42,8 +42,8 @@ import numpy as np
 # —— CONFIG —— 
 HOST       = "192.168.1.75"    # PYNQ’s IP
 PORT       = 6000
-N_FEATURES = 51
-TEST_CSV   = "vitisECGTestData.csv"
+N_FEATURES = 9
+TEST_CSV   = "dvs_test_data.txt"
 
 
 def print_confusion(cm, classes):

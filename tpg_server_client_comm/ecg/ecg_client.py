@@ -40,10 +40,10 @@ import socket
 import numpy as np
 
 # —— CONFIG —— 
-HOST       = "192.168.2.99"    # PYNQ’s IP
+HOST       = "192.168.1.75"    # PYNQ’s IP
 PORT       = 6000
 N_FEATURES = 51
-TEST_CSV   = "vitisNIDSTestData.csv"
+TEST_CSV   = "ecg_test_data.csv"
 
 
 def print_confusion(cm, classes):
@@ -77,6 +77,7 @@ def main():
     sock = socket.create_connection((HOST, PORT))
     f = sock.makefile('rwb', buffering=0)
 
+    print(f"--- [PC] Sending samples to PYNQ Board ---")
     for i, (x, y_true) in enumerate(zip(feats, labels)):
         # send CSV line
         line = ",".join(f"{v:.6f}" for v in x) + "\n"
@@ -93,7 +94,8 @@ def main():
         # accumulate into confusion
         cm[idx[y_true]][idx[y_pred]] += 1
 
-        print(f"[PC] Sample {i}: true={y_true}, pred={y_pred}")
+        if i % 100 == 0:
+            print(f"==> [PC] Sample {i}: true={y_true}, pred={y_pred}", flush=True)
 
     sock.close()
 

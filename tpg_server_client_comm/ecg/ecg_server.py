@@ -39,7 +39,7 @@ import numpy as np
 from pynq import Overlay, allocate
 
 # CONFIGURE THESE
-BITSTREAM    = "tpg_axis/wrapper_working_09_07.xsa"
+BITSTREAM    = "/home/xilinx/pynq/overlays/tpg/tpg_ecg.xsa"
 PORT         = 6000
 N_FEATURES   = 51
 WINDOW_SIZE  = 5
