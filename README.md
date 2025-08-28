@@ -68,11 +68,39 @@ Similarly, as above, the necessary Python files for each application can be foun
 
 ## Accelerator Costs
 ### Accuracy Performance
+Accuracy costs for the TPG Accelerators for each application task:
+
+| Application | Accuracy (%) | Precision |  Recall |    F1   |
+|:-----------:|:------------:|:---------:|:-------:|:-------:|
+|     ECG     |     93.30    |  0.91358  | 0.96723 | 0.93964 |
+|     NIDS    |     94.83    |  0.94583  | 0.96659 | 0.95610 |
+|     DVS     |     95.94    |  0.99913  | 0.94198 | 0.96972 |
 
 ### Resource Utilisation
-Implementing AXI Stream with TPG classifier
+Resource costs for each TPG accelerator with an AXI Stream interface to facilitate streaming transmission are provided below.
+
+Within our TPG accelerators, two variants are available;
+1. DSP: Use of DSP slices are allowed
+2. FABRIC: Use of DSP slices are not allowed and all computations are done using FPGA fabric
+
+| Application | Variant |    LUT [%]    |    FF [%]    | BRAM [%] |   DSP [%]   |
+|:-----------:|:-------:|:-------------:|:------------:|:--------:|:-----------:|
+|     ECG     |   DSP   |  1623 [3.05%] | 5001 [4.70%] |  0 [0%]  |  12 [5.45%] |
+|             |  FABRIC |  4799 [9.03%] | 5479 [5.15%] |  0 [0%]  |    0 [0%]   |
+|     NIDS    |   DSP   |  2641 [4.96%] | 8860 [8.32%] |  0 [0%]  | 24 [10.91%] |
+|             |  FABRIC | 6418 [12.06%] | 9744 [9.16%] |  0 [0%]  |    0 [0%]   |
+|     DVS     |   DSP   |  1903 [3.58%] | 2793 [2.62%] |  0 [0%]  |  10 [4.55%] |
+|             |  FABRIC |  3523 [6.62%] | 3205 [3.01%] |  0 [0%]  |    0 [0%]   |
 
 ### Real-time Performance
+| Application | Variant | Megasamples/sec | Latency (μs) |
+|:-----------:|:-------:|:---------------:|:------------:|
+|     ECG     |   DSP   |      1.9528     |    0.5031    |
+|             |  FABRIC |      1.8697     |    0.5254    |
+|     NIDS    |   DSP   |      1.4425     |    0.6850    |
+|             |  FABRIC |      1.1386     |    0.8678    |
+|     DVS     |   DSP   |      7.4115     |    0.2069    |
+|             |  FABRIC |      6.8658     |    0.2233    |
 
 # Team Members
 | **Team Member**    | **Role**      | **Affiliation**                             |
