@@ -52,19 +52,57 @@ For demonstration purposes, data can alternatively be ingested from a file and s
 To allow the TPG accelerator to receive streaming data over ethernet, we need to start the server to listen for incoming connections to the PYNQ board.
 Python files, for each application, can be found under the directory <span style="color:red">_**tpg_server_client_comm/**_</span> 
 within this repository which will handle the server client communication setup.
+
+#### Step 3.1: Connect to board through a terminal
+The PYNQ-Z2 board can be accessed through a terminal - if the board is connected to a PC via micro-USB - where the terminal can be opened directly in Jupyter or opened from the host machine. 
+If a terminal opened on the host PC is the desired approach, a terminal emulator such as [PuTTY](https://www.putty.org/) can be used to open a terminal and connect to the board. 
+
+**_Configuring PuTTY to Connect to the Board_**
+1. Identify the COM Port 
+   - On Windows, open the Device Manager (found in the Control Panel).
+   - Expand the Ports section. 
+   - Identify the COM port assigned to the USB Serial Port (e.g., COM5).
+
+**_Configure PuTTY_**
+- Open PuTTY. 
+- In the session settings:
+  - Select Serial as the connection type. 
+  - Enter the COM port number you identified (e.g., COM5). 
+  - Set the baud rate to 115200. 
+- Click Open to start the session.
+
+#### Step 3.2: Copy the server files onto the PYNQ board
 1. Open file explorer and navigate to the network fileshare on your PYNQ board by entering <span style="color:green">_**\\\pynq\xilinx**_</span> into the address bar.
 2. Create a new directory <span style="color:green">_**tpg_deployments/**_</span> within this directory and navigate to it.
-3. Depending on the chosen application, create a corresponding directory <span style="color:green">_**tpg_deployments/**_</span> (e.g., if using the DVS application, create a directory called <span style="color:green">_**dvs/**_</span>).
+3. Depending on the chosen application, create a corresponding directory within <span style="color:green">_**tpg_deployments/**_</span> (e.g., if using the DVS application, create a directory called <span style="color:green">_**dvs/**_</span>).
 4. Copy the <span style="color:orange">_***_server.py**_</span> python file (e.g., <span style="color:orange">_**dvs_server.py**_</span>) into this directory.
-5. Run the python file by executing the command <span style="color:orange">_**python dvs_server.py**_</span>.
+
+#### Step 3.2: Run the server on the PYNQ board
+1. Configure PYNQ environment for executing python code by executing the following commands in the terminal:
+```
+sudo su
+```
+```
+source /etc/profile.d/pynq_venv.sh
+```
+```
+source /etc/profile.d/xrt_setup.sh
+```
+2. Run the python file by executing the command <span style="color:orange">_**python3 dvs_server.py**_</span>.
+3. Note the IP address and port number which are outputted to the terminal console. Example:
+```
+[PS] Server is running. Connect from client at 192.168.1.69:6000
+```
 
 ### Step 4: Start the Host Client
 To stream data to the TPG accelerator, we need to start the client to connect to the PYNQ board to begin data transmission.
 Similarly, as above, the necessary Python files for each application can be found under the directory <span style="color:red">_**tpg_server_client_comm/**_</span>.
-1. Copy the relevant <span style="color:orange">_***_client.py**_</span> python file  (e.g., <span style="color:orange">_**dvs_client.py**_</span>) locally onto your PC. 
-2. Open a command line terminal (command prompt on windows) and navigate to the directory where the above and by entering <span style="color:green">_**\\\pynq\xilinx**_</span> into the address bar.
-2. Create a new directory <span style="color:green">_**tpg_deployments/**_</span> within this directory and navigate to where the <span style="color:orange">_***_client.py**_</span> python file is located.
-3. Run the python file by executing the command <span style="color:orange">_**python dvs_client.py**_</span>.
+
+1. Copy the relevant <span style="color:orange">_***_client.py**_</span> python file (e.g., <span style="color:orange">_**dvs_client.py**_</span>) locally onto your PC.
+2. Copy the relevant dataset for the chosen application (e.g., dvs_test_data.txt) to the same directory as the <span style="color:orange">_***_client.py**_</span> python file locally onto your PC.
+3. Open a command line terminal (command prompt on windows) and navigate to the directory where the above python and dataset files (from steps 1-2) are found locally on your PC.
+4. Adjust the IP address and Port number within the <span style="color:orange">_***_client.py**_</span> to point to your boards IP address. 
+5. Run the python file by executing the command <span style="color:orange">_**py dvs_client.py**_</span>.
 
 ## Accelerator Costs
 ### Accuracy Performance

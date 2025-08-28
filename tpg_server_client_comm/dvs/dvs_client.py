@@ -63,9 +63,9 @@ def print_confusion(cm, classes):
 
 def main():
     # load local test data
-    data   = np.loadtxt(TEST_CSV, delimiter=",", dtype=np.float32)
+    data   = np.loadtxt(TEST_CSV, delimiter=" ", dtype=np.float32)
     feats  = data[:, :N_FEATURES]
-    labels = data[:, 53].astype(int)
+    labels = data[:, 9].astype(int)
 
     # determine set of classes
     classes = sorted(set(labels))
