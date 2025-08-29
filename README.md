@@ -3,12 +3,17 @@ This repository contains our submission for the AMD Open Hardware Competition 20
 Tangled Program Graphs (TPG) for real-time stream processing using the [AMD PYNQ Z2](https://www.amd.com/en/corporate/university-program/aup-boards/pynq-z2.html).
 
 In part to the low computational complexity surrounding TPGs and their ability to adapt to given application tasks, their 
-use as a mechanism to derive sophisticated lightweight systems has led to their realisation on embedded microprocessor 
+use as a mechanism to derive sophisticated lightweight classifiers has led to their realisation on embedded microprocessor 
 platforms.
 Although TPGs demonstrate strong potential for lightweight FPGA accelerators, their original sequential implementation 
-failed to exploit the inherent parallelism in its structure. 
-This resulted in limited real-time performance and increased resource costs, overall restricting their effective FPGA 
+fails to exploit the inherent parallelism inherent in its structure. 
+Following this, FPGA accelerators which utilised original TPG implementations resulted in limited real-time performance and increased resource costs, overall restricting their effective FPGA 
 deployment.
+
+## Project Focus
+Our project centred on restructuring TPG structures to better avail of reconfigurable hardware and to utilise a dataflow streaming-based architecture in order to yield high-throughput, low resource-cost accelerators for a variety of common application tasks.
+The resulting dataflow architectures can be generated for any given TPG using our synthesis toolkit which expands upon the functionality offered through [Gegelati](https://github.com/gegelati/gegelati).
+With our synthesis toolkit, TPGs can be synthesised targeting AMD FPGA hardware, which to date has not been achieved before.
 
 To evaluate the effectiveness of our designs at realising lightweight accelerators, we demonstrate their application 
 across three complex time-series benchmark tasks: 
@@ -19,7 +24,7 @@ across three complex time-series benchmark tasks:
 This research enables accurate, high-speed, and high-throughput TPG accelerators, suitable for tackling a diverse range 
 of applications and which can efficiently be deployed onto AMD FPGA hardware.
 
-# Project Structure
+## Project Structure
 ```
 └── AOHW25_589/
     ├── images/
@@ -57,10 +62,9 @@ of applications and which can efficiently be deployed onto AMD FPGA hardware.
 ```
 
 # Project Description
-To enable fast, real-time processing using our streaming TPG classifiers, we opted to transmit data through Ethernet 
-streaming.
+To enable fast, real-time processing via our streaming TPG classifiers, we opted to use Ethernet streaming for data transmission.
 Through this approach external sensors, such as a Dynamic Vision Sensor (DVS) camera, can communicate quickly with our 
-TPG accelerators enabling fast, real-time processing.
+TPG accelerators supporting low-latency, real-time processing.
 
 ## Hardware Description
 A PYNQ-Z2 board, which uses a Zynq-7000 series FPGA, is used for this demonstration. If you have a new board which requires setup, the setup guide can be 
@@ -70,9 +74,17 @@ found [here](https://pynq.readthedocs.io/en/v2.6.1/getting_started/pynq_z2_setup
 As ethernet streaming is the implemented approach for data transmission, a client-server arrangement is required.
 ![TPG Streaming Methodology to allow communication with external data sources (e.g., sensors).](/images/streaming_methodology.png)
 
+## Synthesis Toolkit
+Our project avails of a custom synthesis toolkit which extends the functionality offered through [Gegelati](https://github.com/gegelati/gegelati).
+Once a TPG is trained, corresponding C++ code can be generated to execute the TPG externally from Gegelati.
+The generated C++ code is then synthesised using Vitis HLS.
+The C++ code generated for this project is included under the directory <span style="color:red">_**tpg_vitis_code/**_</span> within this repository. 
+
+
+## Demonstration
 ### Step 1: Copy the chosen TPG design export onto the PYNQ board 
 TPG design exports can be found under the directory <span style="color:red">_**tpg_design_exports/**_</span> within this repository.
-Within this repository, three TPG design exports are available; tpg_ecg.xsa, tpg_nids.xsa or tpg_dvs.xsa. 
+Additionally, three TPG design exports are available; tpg_ecg.xsa, tpg_nids.xsa or tpg_dvs.xsa. 
 1. Open file explorer and navigate to the network fileshare on your PYNQ board by entering <span style="color:green">_**\\\pynq\xilinx\pynq\overlays**_</span> into the address bar.
 2. Create a new directory <span style="color:green">_**tpg/**_</span> within this directory.
 3. Copy the chosen .xsa file for the relevant TPG into the <span style="color:green">_**\\\pynq\xilinx\pynq\overlays\tpg**_</span> directory. 
@@ -95,17 +107,17 @@ If a terminal opened on the host PC is the desired approach, a terminal emulator
 
 **_Configuring PuTTY to Connect to the Board_**
 1. Identify the COM Port 
-   - On Windows, open the Device Manager (found in the Control Panel).
+   - On Windows, open the Device Manager.
    - Expand the Ports section. 
-   - Identify the COM port assigned to the USB Serial Port (e.g., COM5).
+   - Identify the COM port assigned to the USB Serial Port (e.g., COM4).
 
 **_Configure PuTTY_**
-- Open PuTTY. 
-- In the session settings:
-  - Select Serial as the connection type. 
-  - Enter the COM port number you identified (e.g., COM5). 
-  - Set the baud rate to 115200. 
-- Click Open to start the session.
+1. Open PuTTY. 
+2. In the session settings:
+   - Select Serial as the connection type. 
+   - Enter the COM port number you identified (e.g., COM4). 
+   - Set the baud rate to 115200. 
+3. Click Open to start the session.
 
 #### Step 3.2: Copy the server files onto the PYNQ board
 1. Open file explorer and navigate to the network fileshare on your PYNQ board by entering <span style="color:green">_**\\\pynq\xilinx**_</span> into the address bar.
@@ -118,7 +130,7 @@ If a terminal opened on the host PC is the desired approach, a terminal emulator
 ```
 sudo su
 ```
-Password is default to: xilinx
+PYNQ-Z2 password is default to: xilinx
 ```
 source /etc/profile.d/pynq_venv.sh
 ```
@@ -138,7 +150,7 @@ Similarly, as above, the necessary Python files for each application can be foun
 1. Copy the relevant <span style="color:orange">_***_client.py**_</span> python file (e.g., <span style="color:orange">_**dvs_client.py**_</span>) locally onto your PC.
 2. Copy the relevant dataset for the chosen application (e.g., dvs_test_data.txt) to the same directory as the <span style="color:orange">_***_client.py**_</span> python file locally onto your PC.
 3. Open a command line terminal (command prompt on windows) and navigate to the directory where the above python and dataset files (from steps 1-2) are found locally on your PC.
-4. Adjust the IP address and Port number within the <span style="color:orange">_***_client.py**_</span> to point to your boards IP address. 
+4. Adjust the IP address within the <span style="color:orange">_***_client.py**_</span> to point to your boards IP address (the boards IP address is outputted to the PYNQ-Z2 terminal console once the server python file has started). 
 5. Run the python file by executing the command <span style="color:orange">_**py dvs_client.py**_</span>.
 
 ## Accelerator Costs
@@ -152,9 +164,9 @@ Accuracy costs for the TPG Accelerators for each application task:
 |     DVS     |     95.94    |  0.99913  | 0.94198 | 0.96972 |
 
 ### Resource Utilisation
-Resource costs for each TPG accelerator with an AXI Stream interface to facilitate streaming transmission are provided below.
+Resource costs for each TPG accelerator wrapped with an AXI Stream interface to facilitate streaming transmission are provided below.
 
-Within our TPG accelerators, two variants are available;
+With our TPG accelerators, two variants are available;
 1. DSP: Use of DSP slices are allowed
 2. FABRIC: Use of DSP slices are not allowed and all computations are done using FPGA fabric
 
