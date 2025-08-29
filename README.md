@@ -19,6 +19,42 @@ across three complex time-series benchmark tasks:
 This research enables accurate, high-speed, and high-throughput TPG accelerators, suitable for tackling a diverse range 
 of applications and which can efficiently be deployed onto AMD FPGA hardware.
 
+# Project Structure
+```
+└── AOHW25_589/
+    ├── images/
+    │   ├── // images for the repositroy README
+    │   └── streaming_methodology.png
+    ├── tpg_design_exports/
+    │   ├── // .xsa files for each TPG, for each benchmark application
+    │   ├── tpg_dvs.xsa   // DVS TPG 
+    │   ├── tpg_ecg.xsa   // ECG TPG
+    │   └── tpg_nids.xsa  // NIDS TPG
+    ├── tpg_server_client_comm/
+    │   ├── // python files to initiate client-server communication between a host machine and PYNQ-Z2 board
+    │   ├── dvs/
+    │   │   ├── dvs_client.py
+    │   │   └── dvs_server.py
+    │   ├── ecg/
+    │   │   ├── ecg_client.py
+    │   │   └── ecg_server.py
+    │   └── nids/
+    │       ├── nids_client.py
+    │       └── nids_server.py
+    ├── tpg_test_datasets/
+    │   ├── // test datasets to run each TPG demo on the PYNQ-Z2 board
+    │   ├── dvs_test_data.zip
+    │   ├── ecg_test_data.zip
+    │   └── nids_test_data.zip
+    └── tpg_vitis_code/
+        ├── // C++ code for each TPG, for each application, which gets synthesised in Vitis
+        ├── dvs/
+        │   └── ...
+        ├── ecg/
+        │   └── ...
+        └── nids/
+            └── ...
+```
 
 # Project Description
 To enable fast, real-time processing using our streaming TPG classifiers, we opted to transmit data through Ethernet 
