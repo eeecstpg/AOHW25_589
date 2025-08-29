@@ -40,7 +40,7 @@ import socket
 import numpy as np
 
 # —— CONFIG —— 
-HOST       = "192.168.1.69"    # PYNQ’s IP
+HOST       = "192.168.1.76"    # PYNQ’s IP
 PORT       = 6000
 N_FEATURES = 51
 TEST_CSV   = "ecg_test_data.csv"

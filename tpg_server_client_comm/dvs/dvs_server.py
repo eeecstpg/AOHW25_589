@@ -56,7 +56,7 @@ from pynq import Overlay, allocate
 from collections import defaultdict
 
 # CONFIGURE THESE
-BITSTREAM = "tpg_axis/dvs.xsa"
+BITSTREAM = "/home/xilinx/pynq/overlays/tpg/tpg_dvs.xsa"
 PORT = 6000  # TCP port to listen on
 N_FEATURES = 9  # number of input features
 TOTAL_BITS = 32  # ap_fixed total width
@@ -74,7 +74,21 @@ def quantize(feat):
     q = (feat * SCALE_FACTOR).astype(np.int32) & BIT_MASK
     return q.astype(np.uint32)
 
-
+def get_ip_address():
+    """Find the IP address of the PYNQ board."""
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        # This is a trick to get the IP address of the machine
+        # The socket connects to a non-existent external address
+        # and returns the local IP it would use.
+        s.connect(("8.8.8.8", 80))  # Google's public DNS
+        ip_address = s.getsockname()[0]
+    except Exception:
+        # Fallback to localhost if an error occurs
+        ip_address = '127.0.0.1'
+    finally:
+        s.close()
+    return ip_address
 def wait_until_idle(dma, timeout_s=0.05):
     """Return True if both channels go idle within timeout, else False."""
     t0 = time.perf_counter()
@@ -291,8 +305,13 @@ def start_server():
     
     while True:
         try:
+            # Get and print the IP address
+            pynq_ip = get_ip_address()
+            print(f"[PS] Server is running. Connect from client at {pynq_ip}:{PORT}")
+            print("[PS] Waiting for client connection...")
+
             conn, addr = sock.accept()
-            print(f"[SERVER] Connection from {addr}")
+            print(f"[PS] Connection established with {addr}")
             
             buffer = ""
             current_timestamp = None

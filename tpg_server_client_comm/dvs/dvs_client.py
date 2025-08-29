@@ -50,9 +50,9 @@ import time
 import sys
 
 # —— CONFIG —— 
-HOST             = "192.168.2.99"    # PYNQ's IP
+HOST             = "192.168.1.76"    # PYNQ's IP
 PORT             = 6000
-EVENT_FILE       = "datasets/hotel.txt"
+EVENT_FILE       = "dvs_test_data.txt"
 PROGRESS_INTERVAL = 1000              # Print progress every N events
 
 
