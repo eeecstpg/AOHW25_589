@@ -1,107 +1,187 @@
 #!/usr/bin/env python3
 """
-TPG Classifier Client (PC side)
+DVS Event TPG Classifier Client (PC side)
 
-This script runs on your PC and connects to a PYNQ-based TCP server
-that hosts an FPGA-accelerated TPG classifier. It streams feature
-vectors read from a local CSV file, one newline-terminated CSV line
-at a time, and receives back a single integer prediction per sample.
-At the end it builds and prints a confusion matrix.
+This script runs on your PC and connects to a PYNQ-based DVS event processing server.
+It streams DVS events read from a local event file, sending them as timestamp,x,y,polarity,label
+lines without expecting any responses. This is designed to work with the 
+dvs_server.py server.
 
 Protocol:
     • Client connects to the server at (HOST, PORT) via TCP.
-    • For each sample, it sends “f0,f1,…,fN–1\n”.
-    • Server responds with “<pred>\n” (predicted class ID).
-    • Client accumulates true vs. pred into a confusion matrix.
+    • For each event, it sends "timestamp,x,y,polarity,label\n".
+    • No responses expected - server processes events in batches and prints summaries.
+    • Minimal flow control: if a send times out, it waits and retries sending that event, with increasing delay
 
 Configuration (edit these constants near the top of the file):
-    HOST        = "192.168.2.99"            # PYNQ board’s IP address
-    PORT        = 6000                      # TCP port matching the server
-    N_FEATURES  = 51                        # number of floats per sample
-    TEST_CSV    = "vitisECGTestData.csv"    # path to your test data
+    HOST            = "192.168.2.99"        # PYNQ board's IP address
+    PORT            = 6000                  # TCP port matching the server
+    EVENT_FILE      = "events.txt"          # path to your DVS event data
+    PROGRESS_INTERVAL = 1000                # Print progress every N events
+
+Expected event file format:
+    Each line should contain: timestamp x y polarity label
+    Lines starting with # are treated as comments and skipped.
+    Example:
+        0.04133333265781403 90 97 1 1
+        0.04133333265781403 207 6 1 1
+        0.04133333265781403 45 67 0 0
+    
+    Fields:
+        timestamp: Event timestamp in seconds
+        x, y: Pixel coordinates
+        polarity: Event polarity (0 or 1)
+        label: Ground truth label (1=signal, 0=noise) - not sent to server
 
 Usage:
-    # Ensure the PYNQ server is running and accessible first
-    python3 pc_eth_stream.py
+    # Ensure the PYNQ DVS server is running and accessible first
+    python3 dvs_server.py
 
-    You’ll see per-sample logs:
-        [PC] Sample 0: true=0, pred=1
-        …
-
-    And at the end:
-        Confusion Matrix (rows=true, cols=pred):
-           0   1
-         0 50   2
-         1  3  45
-        Class 0 Accuracy: 88.81%
-        Class 1 Accuracy: 95.44%
+    You'll see logs like:
+        [CLIENT] Connected to 192.168.2.99:6000
+        [CLIENT] Sending events from events.txt
+        [CLIENT] Sent 1000 events...
+        [CLIENT] Sent 2000 events...
+        ...
+        [CLIENT] Finished sending 25000 events
 """
 import socket
-import numpy as np
+import time
+import sys
 
 # —— CONFIG —— 
-HOST       = "192.168.1.75"    # PYNQ’s IP
-PORT       = 6000
-N_FEATURES = 9
-TEST_CSV   = "dvs_test_data.txt"
+HOST             = "192.168.2.99"    # PYNQ's IP
+PORT             = 6000
+EVENT_FILE       = "datasets/hotel.txt"
+PROGRESS_INTERVAL = 1000              # Print progress every N events
 
 
-def print_confusion(cm, classes):
-    print("\nConfusion Matrix (rows=true, cols=pred):")
-    # header
-    print("     " + "  ".join(f"{c:>3}" for c in classes))
-    for i, c in enumerate(classes):
-        row = "  ".join(f"{cm[i][j]:>3}" for j in range(len(classes)))
-        print(f"{c:>3}  {row}")
-    # per-class accuracy
-    for i, c in enumerate(classes):
-        tp = cm[i][i]
-        total = sum(cm[i])
-        acc = 100 * tp / total if total else 0.0
-        print(f"Class {c} Accuracy: {acc:.2f}%")
-        
+def send_events_file(sock, filename):
+    """
+    Send events from file to the server with minimal flow control.
+    
+    Args:
+        sock: TCP socket connection
+        filename: Path to event file
+    """
+    print(f"[CLIENT] Sending events from {filename}")
+    
+    sent_count = 0
+    start_time = time.time()
+    retry_delay = 0.001  # Start with 1ms delay
+    max_retry_delay = 0.1  # Max 100ms delay
+    
+    try:
+        with open(filename, 'r') as f:
+            for line_num, line in enumerate(f, 1):
+                line = line.strip()
+                
+                # Skip empty lines and comments
+                if not line or line.startswith('#'):
+                    continue
+                
+                try:
+                    # Parse event line: timestamp x y polarity label
+                    parts = line.split()
+                    if len(parts) < 5:
+                        print(f"[WARNING] Line {line_num}: insufficient fields - {line}")
+                        continue
+                    
+                    timestamp = float(parts[0])
+                    x = parts[1]
+                    y = parts[2] 
+                    polarity = parts[3]
+                    label = parts[4]  # Ground truth label (1=signal, 0=noise)
+                    
+                    # Send event with minimal retry logic - only retry on actual timeouts
+                    event_line = f"{timestamp},{x},{y},{polarity},{label}\n"
+                    
+                    while True:
+                        try:
+                            sock.sendall(event_line.encode())
+                            sent_count += 1
+                            # Success - reset retry delay
+                            retry_delay = 0.001
+                            break
+                            
+                        except socket.timeout:
+                            print(f"[CLIENT] Send timeout, waiting {retry_delay*1000:.1f}ms before retry...")
+                            time.sleep(retry_delay)
+                            retry_delay = min(max_retry_delay, retry_delay * 2)  # Exponential backoff
+                            continue
+                            
+                        except (ConnectionResetError, BrokenPipeError):
+                            print("[ERROR] Connection lost to server")
+                            return False
+                    
+                    # Progress updates
+                    if sent_count % PROGRESS_INTERVAL == 0:
+                        elapsed = time.time() - start_time
+                        rate = sent_count / elapsed if elapsed > 0 else 0
+                        print(f"[CLIENT] Sent {sent_count} events... ({rate:.1f} events/sec)")
+                
+                except (ValueError, IndexError) as e:
+                    print(f"[WARNING] Line {line_num}: parse error - {line} ({e})")
+                    continue
+                except KeyboardInterrupt:
+                    print("\n[CLIENT] Interrupted by user")
+                    break
+    
+    except FileNotFoundError:
+        print(f"[ERROR] Event file not found: {filename}")
+        return False
+    except Exception as e:
+        print(f"[ERROR] Error reading file: {e}")
+        return False
+    
+    elapsed = time.time() - start_time
+    rate = sent_count / elapsed if elapsed > 0 else 0
+    print(f"[CLIENT] Finished sending {sent_count} events in {elapsed:.2f}s ({rate:.1f} events/sec)")
+    return True
+
 
 def main():
-    # load local test data
-    data   = np.loadtxt(TEST_CSV, delimiter=" ", dtype=np.float32)
-    feats  = data[:, :N_FEATURES]
-    labels = data[:, 9].astype(int)
-
-    # determine set of classes
-    classes = sorted(set(labels))
-    idx = {c:i for i,c in enumerate(classes)}
-    # initialize empty confusion matrix
-    cm = [[0]*len(classes) for _ in classes]
-
-    # open TCP connection
-    sock = socket.create_connection((HOST, PORT))
-    f = sock.makefile('rwb', buffering=0)
-
-    print(f"--- [PC] Sending samples to PYNQ Board ---")
-    for i, (x, y_true) in enumerate(zip(feats, labels)):
-        # send CSV line
-        line = ",".join(f"{v:.6f}" for v in x) + "\n"
-        sock.sendall(line.encode())
-
-        # read back prediction
-        resp = f.readline().decode().strip()
-        try:
-            y_pred = int(resp)
-        except ValueError:
-            print(f"[PC] Bad reply: {resp!r}")
-            continue
-
-        # accumulate into confusion
-        cm[idx[y_true]][idx[y_pred]] += 1
-
-        if i % 100 == 0:
-            print(f"==> [PC] Sample {i}: true={y_true}, pred={y_pred}", flush=True)
-
-    sock.close()
-
-    # print final confusion matrix
-    print_confusion(cm, classes)
+    """Main client function."""
+    print(f"[CLIENT] DVS Event Feeder Client")
+    print(f"[CLIENT] Target: {HOST}:{PORT}")
+    print(f"[CLIENT] Event file: {EVENT_FILE}")
+    
+    try:
+        # Connect to server
+        print(f"[CLIENT] Connecting to {HOST}:{PORT}...")
+        sock = socket.create_connection((HOST, PORT), timeout=10)
+        sock.settimeout(5.0)  # Set timeout for send operations
+        print(f"[CLIENT] Connected successfully")
+        
+        # Send events
+        success = send_events_file(sock, EVENT_FILE)
+        
+        if success:
+            print("[CLIENT] All events sent successfully")
+        else:
+            print("[CLIENT] Event sending failed")
+        
+        # Give server time to process final batch
+        print("[CLIENT] Waiting for server to process final batch...")
+        time.sleep(2)
+        
+    except socket.timeout:
+        print(f"[ERROR] Connection timeout to {HOST}:{PORT}")
+        return 1
+    except ConnectionRefusedError:
+        print(f"[ERROR] Connection refused by {HOST}:{PORT}")
+        print("[ERROR] Make sure the DVS server is running on the PYNQ board")
+        return 1
+    except Exception as e:
+        print(f"[ERROR] Connection error: {e}")
+        return 1
+    finally:
+        if 'sock' in locals():
+            sock.close()
+            print("[CLIENT] Connection closed")
+    
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
