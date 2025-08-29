@@ -36,6 +36,7 @@ Usage:
 """
 import socket
 import numpy as np
+import time
 from pynq import Overlay, allocate
 
 # CONFIGURE THESE
@@ -53,6 +54,21 @@ def quantize(feat):
     q = (feat * SCALE_FACTOR).astype(np.int32) & BIT_MASK
     return q.astype(np.uint32)
 
+def get_ip_address():
+    """Find the IP address of the PYNQ board."""
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        # This is a trick to get the IP address of the machine
+        # The socket connects to a non-existent external address
+        # and returns the local IP it would use.
+        s.connect(("8.8.8.8", 80))  # Google's public DNS
+        ip_address = s.getsockname()[0]
+    except Exception:
+        # Fallback to localhost if an error occurs
+        ip_address = '127.0.0.1'
+    finally:
+        s.close()
+    return ip_address
 
 def wait_until_idle(dma, timeout_s=0.05):
     """Return True if both channels go idle within timeout, else False."""
@@ -158,9 +174,14 @@ def start_server():
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.bind(("0.0.0.0", PORT))
     sock.listen(1)
-    print(f"[PS] Listening on port {PORT}…")
+
+    # Get and print the IP address
+    pynq_ip = get_ip_address()
+    print(f"[PS] Server is running. Connect from client at {pynq_ip}:{PORT}")
+    print("[PS] Waiting for client connection...")
+
     conn, addr = sock.accept()
-    print(f"[PS] Connection from {addr}")
+    print(f"[PS] Connection established with {addr}")
 
     buffer = ""
 
@@ -197,7 +218,9 @@ def start_server():
             pred = int(out_buf[0])
             # send back
             conn.sendall(f"{pred}\n".encode())
-            print(f"[PS] -> pred={pred}")
+
+            if pred == 1:
+                print(f"[PS] Suspicious Packet - potential malicious activity")
 
     conn.close()
     sock.close()

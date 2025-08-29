@@ -82,6 +82,7 @@ If a terminal opened on the host PC is the desired approach, a terminal emulator
 ```
 sudo su
 ```
+Password is default to: xilinx
 ```
 source /etc/profile.d/pynq_venv.sh
 ```
